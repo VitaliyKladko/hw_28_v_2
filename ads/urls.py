@@ -1,5 +1,6 @@
-from django.contrib import admin
+from django.conf.urls.static import static
 from django.urls import path
+from hw_28_v_2 import settings
 
 import ads.views
 
@@ -15,4 +16,8 @@ urlpatterns = [
     path('ad/<int:pk>/update/', ads.views.AdsUpdateView.as_view()),
     path('ad/<int:pk>/delete/', ads.views.AdsDeleteView.as_view()),
     path('ad/create/', ads.views.AdsCreateView.as_view()),
+    path('ad/<int:pk>/upload_image/', ads.views.AdsImageView.as_view()),
 ]
+
+if settings.DEBUG:
+    urlpatterns += static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
