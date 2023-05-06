@@ -6,7 +6,7 @@ from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, ListView, CreateView, UpdateView, DeleteView
 
-from ads.models import Category, Ads, Users
+from ads.models import Category, Ads, Users, Location
 from hw_28_v_2 import settings
 
 
@@ -248,4 +248,139 @@ class AdsImageView(UpdateView):
             'is_published': self.object.is_published,
             'category_id': self.object.category_id.id,
             'image': self.object.image.url if self.object.image else None,
+        }, status=200)
+
+
+class UserListView(ListView):
+    model = Users
+
+    def get(self, request, *args, **kwargs):
+        super().get(request, *args, **kwargs)
+
+        paginator = Paginator(self.object_list, settings.TOTAL_ON_PAGE)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        items = []
+        for user in page_obj:
+            items.append({
+                'id': user.id,
+                'username': user.username,
+                'first_name': user.first_name,
+                'last_name': user.last_name,
+                'role': user.role,
+                'age': user.age,
+                'locations': list(user.location_id.all().values_list("name", flat=True))
+            })
+
+        response = {
+            'items': items,
+            'total_pages': paginator.num_pages,
+            'total_elements': paginator.count
+        }
+
+        return JsonResponse(response, safe=False, status=200)
+
+
+class UserDetailView(DetailView):
+    model = Users
+
+    def get(self, request, *args, **kwargs):
+        try:
+            user = self.get_object()
+        except Http404:
+            return JsonResponse({'error': 'Not Found'}, status=404)
+
+        return JsonResponse({
+            'id': user.id,
+            'username': user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'role': user.role,
+            'age': user.age,
+            'locations': list(user.location_id.all().values_list("name", flat=True))
+        })
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class UserCreateView(CreateView):
+    model = Users
+    fields = ['username', 'password', 'first_name', 'last_name', 'role', 'age', 'locations']
+
+    def post(self, request, *args, **kwargs):
+        user_data = json.loads(request.body)
+
+        user = Users.objects.create(
+            username=user_data['username'],
+            password=user_data['password'],
+            first_name=user_data['first_name'],
+            last_name=user_data['last_name'],
+            role=user_data['role'],
+            age=user_data['age']
+        )
+
+        # создание локации (нужно передать список из 3-х элементов: name, lat, lng)
+        if len(user_data['locations']) == 3:
+            loc_obj, created= Location.objects.get_or_create(
+                name=user_data['locations'][0],
+                lat=user_data['locations'][1],
+                lng=user_data['locations'][2],
+            )
+
+            user.location_id.add(loc_obj)
+            user.save()
+
+        return JsonResponse({
+            'id': user.id,
+            'username': user.username,
+            'first_name': user.first_name,
+            'last_name': user.last_name,
+            'role': user.role,
+            'age': user.age,
+            'locations': list(user.location_id.all().values_list("name", flat=True))
+        }, status=201)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class UserUpdateView(UpdateView):
+    model = Users
+    fields = ['username', 'password', 'first_name', 'last_name', 'age', 'location_id']
+
+    def patch(self, request, *args, **kwargs):
+        super().post(request, *args, **kwargs)
+        user_data = json.loads(request.body)
+
+        self.object.username = user_data['username']
+        self.object.password = user_data['password']
+        self.object.first_name = user_data['first_name']
+        self.object.last_name = user_data['last_name']
+        self.object.age = user_data['age']
+
+        for item in user_data['locations']:
+            loc_obj, created = Location.objects.get_or_create(name=item)
+            self.object.location_id.add(loc_obj)
+
+        self.object.save()
+
+        return JsonResponse({
+            'id': self.object.id,
+            'username': self.object.username,
+            'first_name': self.object.first_name,
+            'last_name': self.object.last_name,
+            'age': self.object.age,
+            'password': self.object.password,
+            'locations': list(self.object.location_id.all().values_list('name', flat=True)),
+        }, status=200)
+
+
+@method_decorator(csrf_exempt, name='dispatch')
+class UserDeleteView(DeleteView):
+    model = Users
+    success_url = '/'
+
+    def delete(self, request, *args, **kwargs):
+        super().delete(request, *args, **kwargs)
+
+        return JsonResponse({
+            'status': 'Ok'
         }, status=200)

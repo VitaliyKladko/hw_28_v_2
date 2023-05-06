@@ -14,8 +14,8 @@ class Category(models.Model):
 
 class Location(models.Model):
     name = models.CharField(max_length=100)
-    lat = models.DecimalField(decimal_places=8, max_digits=10)
-    lng = models.DecimalField(decimal_places=8, max_digits=10)
+    lat = models.DecimalField(decimal_places=8, max_digits=10, null=True)
+    lng = models.DecimalField(decimal_places=8, max_digits=10, null=True)
 
     class Meta:
         verbose_name = 'Локация'

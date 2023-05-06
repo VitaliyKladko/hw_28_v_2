@@ -17,6 +17,11 @@ urlpatterns = [
     path('ad/<int:pk>/delete/', ads.views.AdsDeleteView.as_view()),
     path('ad/create/', ads.views.AdsCreateView.as_view()),
     path('ad/<int:pk>/upload_image/', ads.views.AdsImageView.as_view()),
+    path('user/', ads.views.UserListView.as_view()),
+    path('user/<int:pk>/', ads.views.UserDetailView.as_view()),
+    path('user/<int:pk>/delete/', ads.views.UserDeleteView.as_view()),
+    path('user/<int:pk>/update/', ads.views.UserUpdateView.as_view()),
+    path('user/create/', ads.views.UserCreateView.as_view()),
 ]
 
 if settings.DEBUG:
