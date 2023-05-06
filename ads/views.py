@@ -1,11 +1,13 @@
 import json
 
+from django.core.paginator import Paginator
 from django.http import JsonResponse, Http404
 from django.utils.decorators import method_decorator
 from django.views.decorators.csrf import csrf_exempt
 from django.views.generic import DetailView, ListView, CreateView, UpdateView, DeleteView
 
-from ads.models import Category, Ads, Location, Users
+from ads.models import Category, Ads, Users
+from hw_28_v_2 import settings
 
 
 def index(request):
@@ -100,9 +102,13 @@ class AdsListView(ListView):
     def get(self, request, *args, **kwargs):
         super().get(request, *args, **kwargs)
 
-        response = []
-        for advertisement in self.object_list:
-            response.append(
+        paginator = Paginator(self.object_list, settings.TOTAL_ON_PAGE)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+
+        items = []
+        for advertisement in page_obj:
+            items.append(
                 {
                     'id': advertisement.id,
                     'name': advertisement.name,
@@ -116,6 +122,13 @@ class AdsListView(ListView):
 
                 }
             )
+
+        response = {
+            'items': items,
+            'total_pages': paginator.num_pages,
+            'total_elements': paginator.count
+        }
+
         return JsonResponse(response, safe=False, status=200)
 
 
